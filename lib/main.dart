@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart'; // Importa la nuova schermata
+import 'view/login_screen.dart'; // Importa la nuova schermata
 
 void main() {
   runApp(const MyApp());

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'home_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -102,6 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: () {
                             // Logica per la schermata di registrazione
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF212121),
@@ -168,9 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                             ),
-
                             const SizedBox(height: 20),
-
                             // Label e campo Password
                             const Text(
                               'Password',
@@ -204,10 +205,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                             ),
-
                             const SizedBox(height: 24),
-
-                            // Pulsante ACCEDI (Bianco con testo nero)
+                            // Pulsante ACCEDI
                             SizedBox(
                               width: double.infinity,
                               height: 48,
@@ -216,6 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   final email = _emailController.text;
                                   final password = _passwordController.text;
                                   print('Login per: $email con password: $password');
+                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,
@@ -238,7 +238,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
-
                     const SizedBox(height: 60),
                   ],
                 ),
