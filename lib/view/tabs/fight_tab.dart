@@ -1,192 +1,308 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 
-class FightTab extends StatelessWidget {
+// Modello dati con lista di immagini
+class FighterProfile {
+  final String id; // Aggiunto ID unico per identificare la card
+  final String name;
+  final int age;
+  final String bio;
+  final List<String> tags;
+  final String distance;
+  final List<String> images;
+
+  FighterProfile({
+    required this.id,
+    required this.name,
+    required this.age,
+    required this.bio,
+    required this.tags,
+    required this.distance,
+    required this.images,
+  });
+}
+
+class FightTab extends StatefulWidget {
   const FightTab({super.key});
+
+  @override
+  State<FightTab> createState() => _FightTabState();
+}
+
+class _FightTabState extends State<FightTab> {
+  final CardSwiperController _swiperController = CardSwiperController();
+
+  final List<FighterProfile> _profiles = [
+    FighterProfile(
+      id: 'chuck_1',
+      name: 'Chuck',
+      age: 86,
+      bio: 'Non sto cercando un "match".\nSto cercando qualcuno che sopravviva al riscaldamento.',
+      tags: ['Karate', 'MMA', '...'],
+      distance: 'a 0 metri da te',
+      images: [
+        'assets/chuck.jpg',
+        'assets/logo.png',
+        'assets/chuck.jpg',
+      ],
+    ),
+    FighterProfile(
+      id: 'mike_2',
+      name: 'Mike',
+      age: 57,
+      bio: 'Sparring pesante nel weekend. Solo pesi massimi.',
+      tags: ['Boxe', 'Pesi Massimi'],
+      distance: 'a 3 km da te',
+      images: [
+        'assets/logo.png',
+        'assets/chuck.jpg',
+      ],
+    ),
+  ];
+
+  @override
+  void dispose() {
+    _swiperController.dispose();
+    super.dispose();
+  }
+
+  bool _onSwipe(int previousIndex, int? currentIndex, CardSwiperDirection direction) {
+    if (direction == CardSwiperDirection.right) {
+      print('Accettato: ${_profiles[previousIndex].name}');
+    } else if (direction == CardSwiperDirection.left) {
+      print('Rifiutato: ${_profiles[previousIndex].name}');
+    }
+    return true;
+  }
+
+  void _showProfileDetails(BuildContext context, FighterProfile profile) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF121212),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 5,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade700,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          profile.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${profile.age}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 24,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(Icons.location_on, color: Colors.grey, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          profile.distance,
+                          style: const TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        profile.images.isNotEmpty ? profile.images[0] : '',
+                        height: 250,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 250,
+                          color: Colors.grey.shade900,
+                          child: const Icon(Icons.person, size: 80, color: Colors.white24),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2C),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        profile.bio,
+                        style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.3),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Sport:',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: profile.tags.map((tag) => _buildDetailTag(tag)).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        RichText(
+                          text: const TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Peso:  ',
+                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              TextSpan(
+                                text: "peso",
+                                style: TextStyle(color: Colors.white70, fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 32),
+                        RichText(
+                          text: const TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Altezza:  ',
+                                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              TextSpan(
+                                text: "altezza",
+                                style: TextStyle(color: Colors.white70, fontSize: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Ultimi match:',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2C),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailTag(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2C),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade600, width: 1),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. BARRA SUPERIORE (Icona Filtro)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Align(
             alignment: Alignment.topRight,
             child: IconButton(
-              icon: const Icon(Icons.filter_list, color: Colors.black, size: 28),
-              onPressed: () {
-                // Logica per aprire la schermata/modal dei filtri
-              },
+              icon: const Icon(Icons.filter_list, color: Colors.white, size: 28),
+              onPressed: () {},
             ),
           ),
         ),
 
-        // 2. CARD DEL PROFILO PRINCIPALE
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20.0), // Angoli arrotondati della card
-              child: Stack(
-                children: [
-                  // IMMAGINE DI SFONDO DEL PROFILO
-                  Positioned.fill(
-                    child: Image.asset(
-                      'assets/chuck.jpg', // Ricordati di aggiungere la foto negli assets
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-
-                  // GRADIENTE SCURO PER DARE LEGGIBILITÀ AL TESTO
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.2),
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.85),
-                          ],
-                          stops: const [0.0, 0.4, 1.0],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // BARRE DELLE STORIE (In alto nella card)
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    right: 12,
-                    child: Row(
-                      children: [
-                        _buildStoryBar(isActive: true),
-                        const SizedBox(width: 6),
-                        _buildStoryBar(isActive: false),
-                        const SizedBox(width: 6),
-                        _buildStoryBar(isActive: false),
-                        const SizedBox(width: 6),
-                        _buildStoryBar(isActive: false),
-                      ],
-                    ),
-                  ),
-
-                  // INFORMAZIONI PROFILO (In basso nella card)
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Nome, Età e Tasto Info (i)
-                        Row(
-                          children: [
-                            const Text(
-                              'Chuck',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              '86',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                            const Spacer(),
-                            Container(
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.black.withOpacity(0.3),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.info_outline, color: Colors.white, size: 26),
-                                onPressed: () {
-                                  // Logica per visualizzare i dettagli completi del profilo
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-
-                        // Bio / Descrizione
-                        const Text(
-                          'Non sto cercando un "match".\nSto cercando qualcuno che sopravviva al riscaldamento.',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            height: 1.3,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Tag e Distanza
-                        Row(
-                          children: [
-                            _buildTag('Karate'),
-                            const SizedBox(width: 8),
-                            _buildTag('MMA'),
-                            const SizedBox(width: 8),
-                            _buildTag('...'),
-                            const Spacer(),
-                            // Distanza con icona Pin
-                            const Row(
-                              children: [
-                                Icon(Icons.location_on, color: Colors.black, size: 16),
-                                SizedBox(width: 2),
-                                Text(
-                                  'a 0 metri da te',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            child: CardSwiper(
+              controller: _swiperController,
+              cardsCount: _profiles.length,
+              onSwipe: _onSwipe,
+              padding: EdgeInsets.zero,
+              cardBuilder: (context, index, percentX, percentY) {
+                final profile = _profiles[index];
+                // IMPORTANTE: Passiamo ValueKey per forzare il reset dello stato ad ogni nuova card
+                return _FighterCardWidget(
+                  key: ValueKey(profile.id),
+                  profile: profile,
+                  onInfoTap: () => _showProfileDetails(context, profile),
+                );
+              },
             ),
           ),
         ),
 
         const SizedBox(height: 16),
 
-        // 3. PULSANTI D'AZIONE (Rifiuta / Accetta)
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Pulsante Rifiuta (Palmo Rosso)
             _buildActionButton(
               color: Colors.red,
               icon: Icons.front_hand_outlined,
               onTap: () {
-                print('Utente Rifiutato');
+                _swiperController.swipe(CardSwiperDirection.left);
               },
             ),
             const SizedBox(width: 40),
-            // Pulsante Accetta (Pugno Verde)
             _buildActionButton(
               color: Colors.lightGreenAccent.shade400,
               icon: Icons.sports_mma,
               iconColor: Colors.black,
               onTap: () {
-                print('Utente Accettato!');
+                _swiperController.swipe(CardSwiperDirection.right);
               },
             ),
           ],
@@ -197,40 +313,6 @@ class FightTab extends StatelessWidget {
     );
   }
 
-  // Barrette delle Storie (In alto nella card)
-  Widget _buildStoryBar({required bool isActive}) {
-    return Expanded(
-      child: Container(
-        height: 4,
-        decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.white.withOpacity(0.4),
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-    );
-  }
-
-  // Badge/Tag scuri (es. Karate, MMA)
-  Widget _buildTag(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white24, width: 0.5),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  // Pulsanti tondi per lo swipe manuale (Accetta / Rifiuta)
   Widget _buildActionButton({
     required Color color,
     required IconData icon,
@@ -254,6 +336,210 @@ class FightTab extends StatelessWidget {
           ],
         ),
         child: Icon(icon, color: iconColor, size: 36),
+      ),
+    );
+  }
+}
+
+class _FighterCardWidget extends StatefulWidget {
+  final FighterProfile profile;
+  final VoidCallback onInfoTap;
+
+  const _FighterCardWidget({
+    Key? key,
+    required this.profile,
+    required this.onInfoTap,
+  }) : super(key: key);
+
+  @override
+  State<_FighterCardWidget> createState() => _FighterCardWidgetState();
+}
+
+class _FighterCardWidgetState extends State<_FighterCardWidget> {
+  int _currentImageIndex = 0;
+
+  void _nextImage() {
+    if (widget.profile.images.isEmpty) return;
+    setState(() {
+      _currentImageIndex = (_currentImageIndex + 1) % widget.profile.images.length;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final images = widget.profile.images;
+    final hasImages = images.isNotEmpty;
+
+    // Protezione per evitare errori se la lista di immagini cambia dinamica o supera i limiti
+    if (hasImages && _currentImageIndex >= images.length) {
+      _currentImageIndex = 0;
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20.0),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: hasImages
+                ? Image.asset(
+              images[_currentImageIndex],
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey.shade900,
+                child: const Icon(Icons.person, size: 80, color: Colors.white24),
+              ),
+            )
+                : Container(
+              color: Colors.grey.shade900,
+              child: const Icon(Icons.person, size: 80, color: Colors.white24),
+            ),
+          ),
+
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.3),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.85),
+                  ],
+                  stops: const [0.0, 0.4, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _nextImage,
+            ),
+          ),
+
+          if (hasImages && images.length > 1)
+            Positioned(
+              top: 12,
+              left: 12,
+              right: 12,
+              child: Row(
+                children: List.generate(images.length, (index) {
+                  return Expanded(
+                    child: Container(
+                      height: 4,
+                      margin: EdgeInsets.only(
+                        right: index < images.length - 1 ? 6.0 : 0.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: index == _currentImageIndex
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      widget.profile.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${widget.profile.age}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withOpacity(0.3),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.info_outline, color: Colors.white, size: 26),
+                        onPressed: widget.onInfoTap,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.profile.bio,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    ...widget.profile.tags.map((tag) => Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: _buildTag(tag),
+                    )),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, color: Colors.white, size: 16),
+                        const SizedBox(width: 2),
+                        Text(
+                          widget.profile.distance,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTag(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24, width: 0.5),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
