@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../controller/controllore_auth.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
 
@@ -16,6 +18,19 @@ class _LoginScreenState extends State<LoginScreen> {
   // Controller per accedere ai valori inseriti nei campi di testo
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  void eseguiLogin() async{
+    try{
+      UserCredential? userCredential = await AuthService().accediConEmail(_emailController.text.trim(), _passwordController.text.trim());
+      if(userCredential != null && mounted){
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+      }
+    }on FirebaseAuthException catch(e){
+      print('Errore durante il login: $e');
+    }catch(e){
+      print(e);
+    }
+  }
 
   @override
   void dispose() {
@@ -215,7 +230,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   final email = _emailController.text;
                                   final password = _passwordController.text;
                                   print('Login per: $email con password: $password');
-                                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+                                  //Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+                                  eseguiLogin();
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.white,

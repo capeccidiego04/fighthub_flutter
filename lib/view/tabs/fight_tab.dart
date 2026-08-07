@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 
+import '../../controller/controllore_auth.dart';
+
 // Modello dati con lista di immagini
 class FighterProfile {
   final String id; // Aggiunto ID unico per identificare la card
@@ -258,7 +260,10 @@ class _FightTabState extends State<FightTab> {
             alignment: Alignment.topRight,
             child: IconButton(
               icon: const Icon(Icons.filter_list, color: Colors.white, size: 28),
-              onPressed: () {},
+              onPressed: () async {
+                // Aggiungi qui la logica per aprire i filtri
+                await AuthService().logout();
+              },
             ),
           ),
         ),
