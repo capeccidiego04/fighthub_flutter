@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth_wrapper.dart';
 import 'controller/firebase_options.dart';
 import 'view/login_screen.dart'; // Importa la nuova schermata
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,15 @@ void main() async {
   } catch (e, stacktrace) {
     print(">>> ERRORE INIZIALIZZAZIONE FIREBASE: $e <<<");
     print(">>> STACKTRACE: $stacktrace <<<");
+  }
+
+  try {
+    await Supabase.initialize(
+      url: 'https://guebusnndyspxxmlmltl.supabase.co',
+      publishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1ZWJ1c25uZHlzcHh4bWxtbHRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MjYzNDcsImV4cCI6MjA5MjUwMjM0N30.mSDdAg1nlRwEI6srJU_yL3QG2nhLJ4o3lIT7qOMJQuI',
+    );
+  } catch (e){
+    print ("Errore: $e");
   }
 
   runApp(const MyApp());

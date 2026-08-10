@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import '../controller/controllore_db.dart';
 import 'home_screen.dart';
+import 'package:image_picker/image_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -11,6 +15,8 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  final List<File> _immaginiSelezionate = [];
+  final ImagePicker _picker = ImagePicker();
 
   // Controllers per i campi di testo
   final TextEditingController _emailController = TextEditingController();
@@ -18,6 +24,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _cognomeController = TextEditingController();
   final TextEditingController _descrizioneController = TextEditingController();
+  final TextEditingController _altezzaController = TextEditingController();
+  final TextEditingController _pesoController = TextEditingController();
+
+
 
   DateTime? _selectedDate;
   final Set<String> _selectedArts = {};
@@ -60,6 +70,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     } else {
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _selezionaFoto() async {
+    try {
+      final List<XFile> pickedFiles = await _picker.pickMultiImage(
+        imageQuality: 70,
+      );
+
+      if (pickedFiles.isNotEmpty) {
+        setState(() {
+          _immaginiSelezionate.addAll(
+            pickedFiles.map((xFile) => File(xFile.path)).toList(),
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint('Errore selezione foto: $e');
+    }
+  }
+
+  Future<void> registra() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try{
+      final DatabaseService db = DatabaseService();
+
+      await db.registraUtente(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+          nome: _nomeController.text,
+          cognome: _cognomeController.text,
+          artiPraticate: _selectedArts,
+          dataNascita: _selectedDate,
+          altezzaCm: int.tryParse(_altezzaController.text),
+          pesoKg: int.tryParse(_pesoController.text),
+          descrizione: _descrizioneController.text,
+          fotoProfilo: _immaginiSelezionate);
+
+      if(!mounted) return;
+      Navigator.of(context).pop();
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      print("Errore durante la registrazione: $e");
     }
   }
 
@@ -143,7 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // --- STEP 2: DATI PERSONALI ---
+// --- STEP 2: DATI PERSONALI ---
   Widget _buildStep2DatiPersonali() {
     return Center(
       child: SingleChildScrollView(
@@ -190,6 +257,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
               const SizedBox(height: 12),
+              // --- NUOVI CAMPI: ALTEZZA E PESO ---
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Altezza (cm)', color: Colors.black87),
+                        const SizedBox(height: 6),
+                        _buildTextField(
+                          _altezzaController,
+                          'es. 175',
+                          fillColor: const Color(0xFFE0E0E0),
+                          textColor: Colors.black,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Peso (kg)', color: Colors.black87),
+                        const SizedBox(height: 6),
+                        _buildTextField(
+                          _pesoController,
+                          'es. 70',
+                          fillColor: const Color(0xFFE0E0E0),
+                          textColor: Colors.black,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               _buildLabel('Descrizione profilo', color: Colors.black87),
               const SizedBox(height: 6),
               _buildTextField(_descrizioneController, '', fillColor: const Color(0xFFE0E0E0), textColor: Colors.black, maxLines: 3),
@@ -203,7 +307,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-
 // --- STEP 3: SELEZIONE ARTI MARZIALI (MULTIPLA + TASTO AVANTI) ---
   Widget _buildStep3ArtiMarziali() {
     return Center(
@@ -289,6 +392,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
+
   // --- STEP 4: CARICAMENTO FOTO ---
   Widget _buildStep4UploadFoto() {
     return Center(
@@ -304,9 +408,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 24),
               GestureDetector(
-                onTap: () {
-                  // Logica di selezione/upload immagini da galleria
-                },
+                onTap: _selezionaFoto,
                 child: Container(
                   width: 160,
                   height: 160,
@@ -314,11 +416,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     color: const Color(0xFFD9D9D9),
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: const Icon(Icons.upload_outlined, size: 48, color: Colors.black87),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _immaginiSelezionate.isEmpty ? Icons.upload_outlined : Icons.check_circle_outline,
+                        size: 48,
+                        color: _immaginiSelezionate.isEmpty ? Colors.black87 : Colors.green[800],
+                      ),
+                      if (_immaginiSelezionate.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          '${_immaginiSelezionate.length} foto selezionate',
+                          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Clicca per aggiungerne altre',
+                          style: TextStyle(color: Colors.black54, fontSize: 10),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
-              _buildButton('Continua', const Color(0xFF2C2C2E), Colors.white, _nextPage),
+              _buildButton('Continua', const Color(0xFF2C2C2E), Colors.white, () {
+                if (_immaginiSelezionate.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Seleziona almeno una foto per proseguire!')),
+                  );
+                  return;
+                }
+                _nextPage();
+              }),
               const SizedBox(height: 16),
               _buildProgressBar(3),
             ],
@@ -367,11 +498,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Colors.white,
                     () {
                   // Finalizza la registrazione e passa alla HomeScreen
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                        (route) => false,
-                  );
+                  registra();
                 },
               ),
             ),
