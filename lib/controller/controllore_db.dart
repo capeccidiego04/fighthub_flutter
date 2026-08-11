@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:intl/intl.dart';
 
+import '../model/utente.dart';
+
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -78,5 +80,34 @@ class DatabaseService {
       'urlFoto': photoUrls, // <-- Array di URL salvato su Firestore
       'artiPraticate': artiPraticate,
     });
+  }
+
+  Future<List<Utente>> getTuttiGliUtenti() async {
+    final QuerySnapshot querySnapshot = await _db.collection('utente').get();
+
+    List<Utente> utenti = [];
+
+    for (var doc in querySnapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+
+      utenti.add(
+        Utente(
+          id: data['uid'],
+          email: data['email'] ?? '',
+          nome: data['nome'] ?? '',
+          cognome: data['cognome'] ?? '',
+          descrizione: data['descrizione'] ?? '',
+          altezza: (data['altezza'] as num?)?.toInt() ?? 0,
+          peso: (data['peso'] as num?)?.toInt() ?? 0,
+          dataNascita: data['dataNascita'] ?? '',
+          arti: List<String>.from(data['arti'] ?? []),
+          imgs: List<String>.from(data['urlFoto'] ?? []), // Lista degli URL pubblici generati dinamicamente
+          lat: (data['lat'] as num?)?.toDouble() ?? 0.0,
+          lon: (data['lon'] as num?)?.toDouble() ?? 0.0,
+        ),
+      );
+    }
+
+    return utenti;
   }
 }

@@ -2,27 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 
 import '../../controller/controllore_auth.dart';
-
-// Modello dati con lista di immagini
-class FighterProfile {
-  final String id; // Aggiunto ID unico per identificare la card
-  final String name;
-  final int age;
-  final String bio;
-  final List<String> tags;
-  final String distance;
-  final List<String> images;
-
-  FighterProfile({
-    required this.id,
-    required this.name,
-    required this.age,
-    required this.bio,
-    required this.tags,
-    required this.distance,
-    required this.images,
-  });
-}
+import '../../controller/controllore_db.dart';
+import '../../model/utente.dart';
 
 class FightTab extends StatefulWidget {
   const FightTab({super.key});
@@ -33,34 +14,36 @@ class FightTab extends StatefulWidget {
 
 class _FightTabState extends State<FightTab> {
   final CardSwiperController _swiperController = CardSwiperController();
+  final DatabaseService controllore = DatabaseService();
 
-  final List<FighterProfile> _profiles = [
-    FighterProfile(
-      id: 'chuck_1',
-      name: 'Chuck',
-      age: 86,
-      bio: 'Non sto cercando un "match".\nSto cercando qualcuno che sopravviva al riscaldamento.',
-      tags: ['Karate', 'MMA', '...'],
-      distance: 'a 0 metri da te',
-      images: [
-        'assets/chuck.jpg',
-        'assets/logo.png',
-        'assets/chuck.jpg',
-      ],
-    ),
-    FighterProfile(
-      id: 'mike_2',
-      name: 'Mike',
-      age: 57,
-      bio: 'Sparring pesante nel weekend. Solo pesi massimi.',
-      tags: ['Boxe', 'Pesi Massimi'],
-      distance: 'a 3 km da te',
-      images: [
-        'assets/logo.png',
-        'assets/chuck.jpg',
-      ],
-    ),
-  ];
+  List<Utente> _profiles = [];
+  bool _isLoading = true;
+
+  void initState() {
+    super.initState();
+    // 2. Avvia il caricamento asincrono all'inizializzazione del widget
+    _caricaUtenti();
+  }
+
+  Future<void> _caricaUtenti() async {
+    try {
+      final utenti = await controllore.getTuttiGliUtenti();
+      print('Utenti caricati: $utenti');
+      // Controlla se il widget è ancora presente nell'albero dei widget
+      if (!mounted) return;
+      setState(() {
+        _profiles = utenti;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Errore durante il caricamento degli utenti: $e');
+      // Anche qui, verifica mounted prima di aggiornare lo stato di errore
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -70,14 +53,22 @@ class _FightTabState extends State<FightTab> {
 
   bool _onSwipe(int previousIndex, int? currentIndex, CardSwiperDirection direction) {
     if (direction == CardSwiperDirection.right) {
-      print('Accettato: ${_profiles[previousIndex].name}');
+      print('Accettato: ${_profiles[previousIndex].nome}');
     } else if (direction == CardSwiperDirection.left) {
-      print('Rifiutato: ${_profiles[previousIndex].name}');
+      print('Rifiutato: ${_profiles[previousIndex].nome}');
     }
+
+    if (currentIndex == null) {
+      setState(() {
+        // Opzionale: pulisci la lista per attivare la schermata "Nessun altro profilo"
+        _profiles.clear();
+      });
+    }
+
     return true;
   }
 
-  void _showProfileDetails(BuildContext context, FighterProfile profile) {
+  void _showProfileDetails(BuildContext context, Utente profile) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -113,7 +104,7 @@ class _FightTabState extends State<FightTab> {
                     Row(
                       children: [
                         Text(
-                          profile.name,
+                          profile.nome,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -122,7 +113,7 @@ class _FightTabState extends State<FightTab> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${profile.age}',
+                          profile.dataNascita,
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 24,
@@ -132,7 +123,7 @@ class _FightTabState extends State<FightTab> {
                         const Icon(Icons.location_on, color: Colors.grey, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          profile.distance,
+                          profile.lat.toString(),
                           style: const TextStyle(color: Colors.grey, fontSize: 13),
                         ),
                       ],
@@ -141,7 +132,7 @@ class _FightTabState extends State<FightTab> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Image.asset(
-                        profile.images.isNotEmpty ? profile.images[0] : '',
+                        profile.imgs.isNotEmpty ? profile.imgs[0] : '',
                         height: 250,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -161,7 +152,7 @@ class _FightTabState extends State<FightTab> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        profile.bio,
+                        profile.descrizione,
                         style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.3),
                       ),
                     ),
@@ -174,36 +165,36 @@ class _FightTabState extends State<FightTab> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: profile.tags.map((tag) => _buildDetailTag(tag)).toList(),
+                      children: profile.arti.map((tag) => _buildDetailTag(tag)).toList(),
                     ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
                         RichText(
-                          text: const TextSpan(
+                          text: TextSpan(
                             children: [
-                              TextSpan(
+                              const TextSpan(
                                 text: 'Peso:  ',
                                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               TextSpan(
-                                text: "peso",
-                                style: TextStyle(color: Colors.white70, fontSize: 16),
+                                text: profile.peso.toString(),
+                                style: const TextStyle(color: Colors.white70, fontSize: 16),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 32),
                         RichText(
-                          text: const TextSpan(
+                          text: TextSpan(
                             children: [
-                              TextSpan(
+                              const TextSpan(
                                 text: 'Altezza:  ',
                                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               TextSpan(
-                                text: "altezza",
-                                style: TextStyle(color: Colors.white70, fontSize: 16),
+                                text: profile.altezza.toString(),
+                                style: const TextStyle(color: Colors.white70, fontSize: 16),
                               ),
                             ],
                           ),
@@ -211,20 +202,6 @@ class _FightTabState extends State<FightTab> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Ultimi match:',
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2A2A2C),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
                   ],
                 ),
               ),
@@ -252,6 +229,19 @@ class _FightTabState extends State<FightTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    if (_profiles.isEmpty) {
+      return const Center(
+        child: Text(
+          'Nessun utente trovato',
+          style: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
     return Column(
       children: [
         Padding(
@@ -274,9 +264,13 @@ class _FightTabState extends State<FightTab> {
             child: CardSwiper(
               controller: _swiperController,
               cardsCount: _profiles.length,
+              numberOfCardsDisplayed: _profiles.length < 2 ? _profiles.length : 2,
               onSwipe: _onSwipe,
               padding: EdgeInsets.zero,
               cardBuilder: (context, index, percentX, percentY) {
+                if (index < 0 || index >= _profiles.length) {
+                  return const SizedBox.shrink();
+                }
                 final profile = _profiles[index];
                 // IMPORTANTE: Passiamo ValueKey per forzare il reset dello stato ad ogni nuova card
                 return _FighterCardWidget(
@@ -334,7 +328,7 @@ class _FightTabState extends State<FightTab> {
           color: color,
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.4),
+              color: color.withValues(alpha: 0.4),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -347,14 +341,14 @@ class _FightTabState extends State<FightTab> {
 }
 
 class _FighterCardWidget extends StatefulWidget {
-  final FighterProfile profile;
+  final Utente profile;
   final VoidCallback onInfoTap;
 
   const _FighterCardWidget({
-    Key? key,
+    super.key,
     required this.profile,
     required this.onInfoTap,
-  }) : super(key: key);
+  });
 
   @override
   State<_FighterCardWidget> createState() => _FighterCardWidgetState();
@@ -364,15 +358,15 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
   int _currentImageIndex = 0;
 
   void _nextImage() {
-    if (widget.profile.images.isEmpty) return;
+    if (widget.profile.imgs.isEmpty) return;
     setState(() {
-      _currentImageIndex = (_currentImageIndex + 1) % widget.profile.images.length;
+      _currentImageIndex = (_currentImageIndex + 1) % widget.profile.imgs.length;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final images = widget.profile.images;
+    final images = widget.profile.imgs;
     final hasImages = images.isNotEmpty;
 
     // Protezione per evitare errori se la lista di immagini cambia dinamica o supera i limiti
@@ -386,7 +380,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
         children: [
           Positioned.fill(
             child: hasImages
-                ? Image.asset(
+                ? Image.network(
               images[_currentImageIndex],
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
@@ -460,7 +454,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                 Row(
                   children: [
                     Text(
-                      widget.profile.name,
+                      widget.profile.nome,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -469,7 +463,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${widget.profile.age}',
+                      '${widget.profile.dataNascita}',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 24,
@@ -491,7 +485,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  widget.profile.bio,
+                  widget.profile.descrizione,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -501,7 +495,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    ...widget.profile.tags.map((tag) => Padding(
+                    ...widget.profile.arti.map((tag) => Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: _buildTag(tag),
                     )),
@@ -511,7 +505,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                         const Icon(Icons.location_on, color: Colors.white, size: 16),
                         const SizedBox(width: 2),
                         Text(
-                          widget.profile.distance,
+                          widget.profile.peso.toString(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
