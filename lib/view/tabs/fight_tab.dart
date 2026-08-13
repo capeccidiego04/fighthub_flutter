@@ -37,7 +37,6 @@ class _FightTabState extends State<FightTab> {
       });
     } catch (e) {
       print('Errore durante il caricamento degli utenti: $e');
-      // Anche qui, verifica mounted prima di aggiornare lo stato di errore
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -463,7 +462,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${widget.profile.dataNascita}',
+                      widget.profile.dataNascita,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 24,
@@ -494,18 +493,29 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                 ),
                 const SizedBox(height: 12),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    ...widget.profile.arti.map((tag) => Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: _buildTag(tag),
-                    )),
-                    const Spacer(),
+                    // 1. I tag delle arti marziali contenuti dentro Wrap
+                    Expanded(
+                      child: Wrap(
+                        spacing: 8.0,
+                        runSpacing: 4.0,
+                        children: widget.profile.arti
+                            .map((tag) => _buildTag(tag))
+                            .toList(),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // 2. La sezione della posizione (posizione allineata a destra)
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.location_on, color: Colors.white, size: 16),
                         const SizedBox(width: 2),
                         Text(
-                          widget.profile.peso.toString(),
+                          widget.profile.lat.toString(),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -515,7 +525,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                       ],
                     ),
                   ],
-                ),
+                )
               ],
             ),
           ),
@@ -542,4 +552,6 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
       ),
     );
   }
+
+
 }

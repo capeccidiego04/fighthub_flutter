@@ -100,8 +100,8 @@ class DatabaseService {
           altezza: (data['altezza'] as num?)?.toInt() ?? 0,
           peso: (data['peso'] as num?)?.toInt() ?? 0,
           dataNascita: data['dataNascita'] ?? '',
-          arti: List<String>.from(data['arti'] ?? []),
-          imgs: List<String>.from(data['urlFoto'] ?? []), // Lista degli URL pubblici generati dinamicamente
+          arti: List<String>.from(data['artiPraticate'] ?? []),
+          imgs: List<String>.from(data['urlFoto'] ?? []),
           lat: (data['lat'] as num?)?.toDouble() ?? 0.0,
           lon: (data['lon'] as num?)?.toDouble() ?? 0.0,
         ),
@@ -109,5 +109,27 @@ class DatabaseService {
     }
 
     return utenti;
+  }
+
+  Future<Utente?> getUtente(String uid) async{
+    final QuerySnapshot query = await _db.collection('utente').where('uid', isEqualTo: uid).get();
+    if (query.docs.isEmpty) {
+      return null;
+    }
+    final data = query.docs[0].data() as Map<String, dynamic>;
+    return Utente(
+      id: data['uid'],
+      email: data['email'] ?? '',
+      nome: data['nome'] ?? '',
+      cognome: data['cognome'] ?? '',
+      descrizione: data['descrizione'] ?? '',
+      altezza: (data['altezza'] as num?)?.toInt() ?? 0,
+      peso: (data['peso'] as num?)?.toInt() ?? 0,
+      dataNascita: data['dataNascita'] ?? '',
+      arti: List<String>.from(data['artiPraticate'] ?? []),
+      imgs: List<String>.from(data['urlFoto'] ?? []),
+      lat: (data['lat'] as num?)?.toDouble() ?? 0.0,
+      lon: (data['lon'] as num?)?.toDouble() ?? 0.0,
+    );
   }
 }
