@@ -400,7 +400,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   ),
                   const SizedBox(width: 8),
                   Row(
-                    children: List.generate(6, (index) {
+                    children: List.generate(5, (index) {
                       return Icon(
                         index < rating ? Icons.star : Icons.star_border,
                         size: 18,
