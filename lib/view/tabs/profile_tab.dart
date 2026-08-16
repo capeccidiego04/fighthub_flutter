@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../controller/controllore_auth.dart';
 import '../../controller/controllore_db.dart';
 import '../../model/utente.dart';
 
@@ -185,13 +186,29 @@ class _ProfileTabState extends State<ProfileTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Il tuo profilo:',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween, // Spinge il testo a sinistra e il pulsante a destra
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children:[
+                      const Text(
+                        'Il tuo profilo:',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      IconButton(
+                          icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 28),
+                          tooltip: 'Logout',
+                          onPressed: () async {
+                            await AuthService().logout();
+                            if(mounted){
+                              Navigator.pushReplacementNamed(context, '/login_screen');
+                            }
+                          }
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
 
@@ -227,7 +244,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   const SizedBox(height: 12),
 
                   Text(
-                    '${user.nome}, ${user.dataNascita}',
+                    '${user.nome} ${user.cognome}, ${controllore.calcolaEta(user.dataNascita)}',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 
@@ -15,6 +16,8 @@ class FightTab extends StatefulWidget {
 class _FightTabState extends State<FightTab> {
   final CardSwiperController _swiperController = CardSwiperController();
   final DatabaseService controllore = DatabaseService();
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  Utente? _utenteCorrente;
 
   List<Utente> _profiles = [];
   bool _isLoading = true;
@@ -27,11 +30,14 @@ class _FightTabState extends State<FightTab> {
 
   Future<void> _caricaUtenti() async {
     try {
-      final utenti = await controllore.getTuttiGliUtenti();
-      print('Utenti caricati: $utenti');
-      // Controlla se il widget è ancora presente nell'albero dei widget
+      final uid = auth.currentUser!.uid;
+
+      final mioProfilo = await controllore.getUtente(uid);
+      final utenti = await controllore.getTuttiGliUtenti(uid);
+
       if (!mounted) return;
       setState(() {
+        _utenteCorrente = mioProfilo;
         _profiles = utenti;
         _isLoading = false;
       });
@@ -53,8 +59,10 @@ class _FightTabState extends State<FightTab> {
   bool _onSwipe(int previousIndex, int? currentIndex, CardSwiperDirection direction) {
     if (direction == CardSwiperDirection.right) {
       print('Accettato: ${_profiles[previousIndex].nome}');
+      controllore.inviaRisposta(from_id: auth.currentUser!.uid, to_id: _profiles[previousIndex].id, tipo: 'LIKE');
     } else if (direction == CardSwiperDirection.left) {
       print('Rifiutato: ${_profiles[previousIndex].nome}');
+      controllore.inviaRisposta(from_id: auth.currentUser!.uid, to_id: _profiles[previousIndex].id, tipo: 'PASS');
     }
 
     if (currentIndex == null) {
@@ -103,7 +111,7 @@ class _FightTabState extends State<FightTab> {
                     Row(
                       children: [
                         Text(
-                          profile.nome,
+                          '${profile.nome} ${profile.cognome}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 28,
@@ -112,7 +120,7 @@ class _FightTabState extends State<FightTab> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          profile.dataNascita,
+                          controllore.calcolaEta(profile.dataNascita),
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 24,
@@ -130,7 +138,7 @@ class _FightTabState extends State<FightTab> {
                     const SizedBox(height: 16),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(
+                      child: Image.network(
                         profile.imgs.isNotEmpty ? profile.imgs[0] : '',
                         height: 250,
                         width: double.infinity,
@@ -177,7 +185,7 @@ class _FightTabState extends State<FightTab> {
                                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               TextSpan(
-                                text: profile.peso.toString(),
+                                text: '${profile.peso.toString()}kg',
                                 style: const TextStyle(color: Colors.white70, fontSize: 16),
                               ),
                             ],
@@ -192,7 +200,7 @@ class _FightTabState extends State<FightTab> {
                                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               TextSpan(
-                                text: profile.altezza.toString(),
+                                text: '${profile.altezza.toString()}cm',
                                 style: const TextStyle(color: Colors.white70, fontSize: 16),
                               ),
                             ],
@@ -250,8 +258,7 @@ class _FightTabState extends State<FightTab> {
             child: IconButton(
               icon: const Icon(Icons.filter_list, color: Colors.white, size: 28),
               onPressed: () async {
-                // Aggiungi qui la logica per aprire i filtri
-                await AuthService().logout();
+                // Logica per filtri
               },
             ),
           ),
@@ -263,7 +270,7 @@ class _FightTabState extends State<FightTab> {
             child: CardSwiper(
               controller: _swiperController,
               cardsCount: _profiles.length,
-              numberOfCardsDisplayed: _profiles.length < 2 ? _profiles.length : 2,
+              numberOfCardsDisplayed: _profiles.length < 2 ? _profiles.length : 1,
               onSwipe: _onSwipe,
               padding: EdgeInsets.zero,
               cardBuilder: (context, index, percentX, percentY) {
@@ -271,10 +278,11 @@ class _FightTabState extends State<FightTab> {
                   return const SizedBox.shrink();
                 }
                 final profile = _profiles[index];
-                // IMPORTANTE: Passiamo ValueKey per forzare il reset dello stato ad ogni nuova card
+                //Passo ValueKey per forzare il reset dello stato ad ogni nuova card
                 return _FighterCardWidget(
                   key: ValueKey(profile.id),
                   profile: profile,
+                  utenteCorrente: _utenteCorrente!, // <-- AGGIUNGI QUESTA RIGA
                   onInfoTap: () => _showProfileDetails(context, profile),
                 );
               },
@@ -341,11 +349,14 @@ class _FightTabState extends State<FightTab> {
 
 class _FighterCardWidget extends StatefulWidget {
   final Utente profile;
+  final Utente utenteCorrente;
   final VoidCallback onInfoTap;
+
 
   const _FighterCardWidget({
     super.key,
     required this.profile,
+    required this.utenteCorrente,
     required this.onInfoTap,
   });
 
@@ -355,6 +366,7 @@ class _FighterCardWidget extends StatefulWidget {
 
 class _FighterCardWidgetState extends State<_FighterCardWidget> {
   int _currentImageIndex = 0;
+  final FirebaseAuth auth = FirebaseAuth.instance;
 
   void _nextImage() {
     if (widget.profile.imgs.isEmpty) return;
@@ -367,6 +379,13 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
   Widget build(BuildContext context) {
     final images = widget.profile.imgs;
     final hasImages = images.isNotEmpty;
+    final user = auth.currentUser;
+
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+
+    final io = DatabaseService().getUtente(user.uid);
 
     // Protezione per evitare errori se la lista di immagini cambia dinamica o supera i limiti
     if (hasImages && _currentImageIndex >= images.length) {
@@ -462,7 +481,7 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      widget.profile.dataNascita,
+                      DatabaseService().calcolaEta(widget.profile.dataNascita),
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 24,
@@ -515,7 +534,12 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
                         const Icon(Icons.location_on, color: Colors.white, size: 16),
                         const SizedBox(width: 2),
                         Text(
-                          widget.profile.lat.toString(),
+                          DatabaseService().calcolaDistanza(
+                            widget.profile.lat,
+                            widget.profile.lon,
+                            widget.utenteCorrente.lat,
+                            widget.utenteCorrente.lon,
+                          ),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -552,6 +576,4 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
       ),
     );
   }
-
-
 }

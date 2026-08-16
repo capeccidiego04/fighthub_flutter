@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:intl/intl.dart';
+import 'dart:math';
 
+import '../model/risposta.dart';
 import '../model/utente.dart';
 
 class DatabaseService {
@@ -24,10 +26,7 @@ class DatabaseService {
     List<File>? fotoProfilo, // <-- Passiamo una LISTA di file
   }) async {
     // 1. Creazione dell'account su Firebase Auth
-    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
 
     User? user = userCredential.user;
     if (user == null) {
@@ -82,30 +81,41 @@ class DatabaseService {
     });
   }
 
-  Future<List<Utente>> getTuttiGliUtenti() async {
+  Future<List<Utente>> getTuttiGliUtenti(String uid) async {
     final QuerySnapshot querySnapshot = await _db.collection('utente').get();
-
+    final QuerySnapshot queryRisposte = await _db.collection('risposta').where('fromUid', isEqualTo: uid).get();
     List<Utente> utenti = [];
+    List<String> risposte = [];
+    for (var doc in queryRisposte.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      risposte.add(data['toUid']);
+      print(data['toUid']);
+    }
 
     for (var doc in querySnapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
 
-      utenti.add(
-        Utente(
-          id: data['uid'],
-          email: data['email'] ?? '',
-          nome: data['nome'] ?? '',
-          cognome: data['cognome'] ?? '',
-          descrizione: data['descrizione'] ?? '',
-          altezza: (data['altezza'] as num?)?.toInt() ?? 0,
-          peso: (data['peso'] as num?)?.toInt() ?? 0,
-          dataNascita: data['dataNascita'] ?? '',
-          arti: List<String>.from(data['artiPraticate'] ?? []),
-          imgs: List<String>.from(data['urlFoto'] ?? []),
-          lat: (data['lat'] as num?)?.toDouble() ?? 0.0,
-          lon: (data['lon'] as num?)?.toDouble() ?? 0.0,
-        ),
-      );
+      if(data['uid'] == uid || risposte.contains(data['uid'])){
+        print("Già valutato");
+      }else{
+        print("mio uid: ${uid}, utente: ${data['uid']}");
+        utenti.add(
+          Utente(
+            id: data['uid'],
+            email: data['email'] ?? '',
+            nome: data['nome'] ?? '',
+            cognome: data['cognome'] ?? '',
+            descrizione: data['descrizione'] ?? '',
+            altezza: (data['altezza'] as num?)?.toInt() ?? 0,
+            peso: (data['peso'] as num?)?.toInt() ?? 0,
+            dataNascita: data['dataNascita'] ?? '',
+            arti: List<String>.from(data['artiPraticate'] ?? []),
+            imgs: List<String>.from(data['urlFoto'] ?? []),
+            lat: (data['lat'] as num?)?.toDouble() ?? 0.0,
+            lon: (data['lon'] as num?)?.toDouble() ?? 0.0,
+          ),
+        );
+      }
     }
 
     return utenti;
@@ -131,5 +141,67 @@ class DatabaseService {
       lat: (data['lat'] as num?)?.toDouble() ?? 0.0,
       lon: (data['lon'] as num?)?.toDouble() ?? 0.0,
     );
+  }
+
+  Future<void> inviaRisposta({
+    required String from_id,
+    required String to_id,
+    required String tipo}) async {
+      await _db.collection('risposta').add({
+        'fromUid': from_id,
+        'toUid': to_id,
+        'tipo': tipo,
+      });
+      print("RISPOSTA INVIATA");
+    }
+
+  String calcolaEta(String? dataNascitaStringa) {
+    if (dataNascitaStringa == null || dataNascitaStringa.isEmpty) {
+      return 'N/D';
+    }
+    try {
+      List<String> parti = dataNascitaStringa.split('/');
+      if (parti.length != 3) return 'N/D';
+      int giorno = int.parse(parti[0]);
+      int mese = int.parse(parti[1]);
+      int anno = int.parse(parti[2]);
+
+      DateTime dataNascita = DateTime(anno, mese, giorno);
+      DateTime oggi = DateTime.now();
+
+      int eta = oggi.year - dataNascita.year;
+
+      if (oggi.month < dataNascita.month ||
+          (oggi.month == dataNascita.month && oggi.day < dataNascita.day)) {
+        eta--;
+      }
+      return eta.toString();
+    } catch (e) {
+      return 'N/D';
+    }
+  }
+
+  String calcolaDistanza(double? lat1, double? lon1, double? lat2, double? lon2) {
+
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+      return 'N/D';
+    }
+
+    const double raggioTerra = 6371.0;
+
+    double deltaLat = _degToRad(lat2 - lat1);
+    double deltaLon = _degToRad(lon2 - lon1);
+
+    double a = sin(deltaLat / 2) * sin(deltaLat / 2) +
+        cos(_degToRad(lat1)) * cos(_degToRad(lat2)) *
+        sin(deltaLon / 2) * sin(deltaLon / 2);
+
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    double distanzaInKm = raggioTerra * c;
+
+    return '${distanzaInKm.toStringAsFixed(1)} km';
+  }
+  double _degToRad(double deg) {
+    return deg * (pi / 180.0);
   }
 }

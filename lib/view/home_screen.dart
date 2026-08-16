@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey,
+      backgroundColor: Colors.black12,
       body: SafeArea(
         // IndexedStack mantiene attivo lo stato delle schermate quando cambi tab
         child: IndexedStack(
