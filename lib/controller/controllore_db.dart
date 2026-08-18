@@ -227,4 +227,90 @@ class DatabaseService {
   double _degToRad(double deg) {
     return deg * (pi / 180.0);
   }
+
+  /// Aggiorna peso, descrizione, arti praticate e foto del profilo
+  Future<void> salvaModifiche({
+    required String uid,
+    required int peso,
+    required String descrizione,
+    required Set<String> artiPraticate,
+    required List<dynamic> immaginiMix, // Può contenere String (URL) o File
+    required List<String> fotoOriginali, // Vecchi URL per individuare le immagini rimosse
+  }) async {
+    List<String> urlFotoFinali = [];
+
+    // 1. Rimuove da Supabase Storage le foto eliminate dall'utente
+    List<String> fotoRimosse = fotoOriginali
+        .where((url) => !immaginiMix.contains(url))
+        .toList();
+
+    if (fotoRimosse.isNotEmpty) {
+      List<String> pathsDaRimuovere = [];
+      for (String url in fotoRimosse) {
+        try {
+          final uri = Uri.parse(url);
+          final path = uri.pathSegments
+              .sublist(uri.pathSegments.indexOf('foto_fighthub') + 1)
+              .join('/');
+          pathsDaRimuovere.add(path);
+        } catch (e) {
+          print("Errore nel parsing del path da rimuovere: $e");
+        }
+      }
+
+      if (pathsDaRimuovere.isNotEmpty) {
+        await _supabase.storage.from('foto_fighthub').remove(pathsDaRimuovere);
+      }
+    }
+
+    // 2. Mantiene gli URL esistenti e carica i nuovi File locali su Supabase
+    for (int i = 0; i < immaginiMix.length; i++) {
+      var item = immaginiMix[i];
+
+      if (item is String) {
+        urlFotoFinali.add(item);
+      } else if (item is File) {
+        final String fileName = '${uid}_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+
+        await _supabase.storage.from('foto_fighthub').upload(
+          fileName,
+          item,
+          fileOptions: const FileOptions(upsert: true),
+        );
+
+        final String publicUrl =
+        _supabase.storage.from('foto_fighthub').getPublicUrl(fileName);
+
+        urlFotoFinali.add(publicUrl);
+      }
+    }
+
+    // 3. Aggiorna solo i campi modificabili su Firestore
+    await _db.collection('utente').doc(uid).update({
+      'peso': peso,
+      'descrizione': descrizione,
+      'artiPraticate': artiPraticate.toList(),
+      'urlFoto': urlFotoFinali,
+    });
+  }
+
+  Future<int> getSwipeUpRicevuti(String uid) async {
+    final QuerySnapshot snapshot = await _db
+        .collection('risposta')
+        .where('toUid', isEqualTo: uid)
+        .where('tipo', isEqualTo: 'LIKE')
+        .get();
+
+    return snapshot.docs.length;
+  }
+
+  Future<int> getSwipeDownRicevuti(String uid) async {
+    final QuerySnapshot snapshot = await _db
+        .collection('risposta')
+        .where('toUid', isEqualTo: uid)
+        .where('tipo', isEqualTo: 'PASS')
+        .get();
+
+    return snapshot.docs.length;
+  }
 }

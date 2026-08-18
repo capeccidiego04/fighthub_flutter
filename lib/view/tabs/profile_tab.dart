@@ -4,6 +4,7 @@ import '../../controller/controllore_auth.dart';
 import '../../controller/controllore_db.dart';
 import '../../model/recensione.dart';
 import '../../model/utente.dart';
+import '../modifica_profilo_screen.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({Key? key}) : super(key: key);
@@ -168,13 +169,27 @@ class _ProfileTabState extends State<ProfileTab> {
     final utente = await controllore.getUtente(uid);
 
     List<Recensione?> recensioni = [];
+    int swipeDown = 0;
+    int swipeUp = 0;
+
     if (utente != null) {
-      recensioni = await controllore.getRecensioni(utente.id);
+      // Esecuzione in parallelo per ottimizzare i tempi di caricamento
+      final risultati = await Future.wait([
+        controllore.getRecensioni(utente.id),
+        controllore.getSwipeDownRicevuti(utente.id),
+        controllore.getSwipeUpRicevuti(utente.id),
+      ]);
+
+      recensioni = risultati[0] as List<Recensione?>;
+      swipeDown = risultati[1] as int;
+      swipeUp = risultati[2] as int;
     }
 
     return {
       'utente': utente,
       'recensioni': recensioni,
+      'swipeDown': swipeDown,
+      'swipeUp': swipeUp,
     };
   }
 
@@ -333,6 +348,9 @@ class _ProfileTabState extends State<ProfileTab> {
             // Rimuoviamo eventuali elementi nulli se la lista accetta Recensione?
             final List<Recensione> recensioniValide = recensioni.whereType<Recensione>().toList();
 
+            final int swipeDownCount = snapshot.data!['swipeDown'] ?? 0;
+            final int swipeUpCount = snapshot.data!['swipeUp'] ?? 0;
+
             final List<String> images = user.imgs;
             final bool hasImage = images.isNotEmpty && images[0].isNotEmpty;
 
@@ -426,8 +444,8 @@ class _ProfileTabState extends State<ProfileTab> {
                           mostraStatisticheDialog(
                             context,
                             mediaValutazione: mediaStelle,
-                            swipeDownCount: 5,
-                            swipeUpCount: 5,
+                            swipeDownCount: swipeDownCount,
+                            swipeUpCount: swipeUpCount,
                           );
                         },
                       ),
@@ -435,7 +453,19 @@ class _ProfileTabState extends State<ProfileTab> {
                         icon: Icons.edit_note_rounded,
                         label: 'Modifica\nprofilo',
                         textColor: textColor,
-                        onTap: () {},
+                        onTap: () async {
+                          final haModificato = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ModificaProfiloScreen(utente: user),
+                            ),
+                          );
+                          if (haModificato == true) {
+                            setState(() {
+                              _profileDataFuture = _caricaDatiProfilo(user.id);
+                            });
+                          }
+                        },
                       ),
                     ],
                   ),
