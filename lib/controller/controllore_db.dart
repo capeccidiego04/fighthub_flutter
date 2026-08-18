@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:intl/intl.dart';
 import 'dart:math';
 
+import '../model/recensione.dart';
 import '../model/risposta.dart';
 import '../model/utente.dart';
 
@@ -23,9 +24,8 @@ class DatabaseService {
     int? altezzaCm,
     int? pesoKg,
     String? descrizione,
-    List<File>? fotoProfilo, // <-- Passiamo una LISTA di file
+    List<File>? fotoProfilo,
   }) async {
-    // 1. Creazione dell'account su Firebase Auth
     UserCredential userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
 
     User? user = userCredential.user;
@@ -39,15 +39,14 @@ class DatabaseService {
     }
 
     String uid = user.uid;
-    List<String> photoUrls = []; // <-- Lista degli URL che salveremo su Firestore
+    List<String> photoUrls = [];
 
-    // 2. Upload di MULTIPLE immagini su Supabase Storage
+    // 2. Upload immagini su Supabase
     if (fotoProfilo != null && fotoProfilo.isNotEmpty) {
       for (int i = 0; i < fotoProfilo.length; i++) {
         File file = fotoProfilo[i];
 
-        // Creiamo un nome file univoco combinando l'UID e l'indice dell'immagine (o un timestamp)
-        final String fileName = '${uid}_$i.jpg'; // es. 12345_0.jpg, 12345_1.jpg
+        final String fileName = '${uid}_$i.jpg';
 
         await _supabase.storage
             .from('foto_fighthub')
@@ -76,7 +75,7 @@ class DatabaseService {
       'altezza': altezzaCm,
       'peso': pesoKg,
       'descrizione': descrizione ?? '',
-      'urlFoto': photoUrls, // <-- Array di URL salvato su Firestore
+      'urlFoto': photoUrls,
       'artiPraticate': artiPraticate,
     });
   }
@@ -143,6 +142,31 @@ class DatabaseService {
     );
   }
 
+  Future<List<Recensione?>> getRecensioni(String uid) async {
+    final QuerySnapshot query = await _db.collection('recensione').where('recensitoUid', isEqualTo: uid).get();
+    List<Recensione?> recensioni = [];
+    for(var doc in query.docs){
+      final data = doc.data() as Map<String, dynamic>;
+      Utente? u = await getUtente(data['recensoreUid']);
+      var nome;
+      var foto;
+      if(u != null){
+        nome = "${u.nome} ${u.cognome}";
+        foto = u.imgs[0];
+      }
+      final Recensione? recensione = Recensione(
+        recensitoUid: data['recensitoUid'] ?? '',
+        recensoreUid: data['recensoreUid'] ?? '',
+        testo: data['testo'] ?? '',
+        valutazione: (data['valutazione'] as num?)?.toInt() ?? 0,
+        nome: nome ?? '',
+        foto: foto ?? '',
+      );
+      recensioni.add(recensione);
+    }
+    return recensioni;
+  }
+
   Future<void> inviaRisposta({
     required String from_id,
     required String to_id,
@@ -152,7 +176,6 @@ class DatabaseService {
         'toUid': to_id,
         'tipo': tipo,
       });
-      print("RISPOSTA INVIATA");
     }
 
   String calcolaEta(String? dataNascitaStringa) {
@@ -182,7 +205,6 @@ class DatabaseService {
   }
 
   String calcolaDistanza(double? lat1, double? lon1, double? lat2, double? lon2) {
-
     if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
       return 'N/D';
     }
@@ -201,6 +223,7 @@ class DatabaseService {
 
     return '${distanzaInKm.toStringAsFixed(1)} km';
   }
+
   double _degToRad(double deg) {
     return deg * (pi / 180.0);
   }

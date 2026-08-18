@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../controller/controllore_auth.dart';
 import '../../controller/controllore_db.dart';
+import '../../model/recensione.dart';
 import '../../model/utente.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -15,15 +16,166 @@ class _ProfileTabState extends State<ProfileTab> {
   final DatabaseService controllore = DatabaseService();
   final FirebaseAuth auth = FirebaseAuth.instance;
 
-  Future<Utente?>? _userFuture;
+  // Unici Future che carica contemporaneamente sia l'utente che le sue recensioni
+  Future<Map<String, dynamic>>? _profileDataFuture;
 
   @override
   void initState() {
     super.initState();
     final currentUser = auth.currentUser;
     if (currentUser != null) {
-      _userFuture = controllore.getUtente(currentUser.uid);
+      _profileDataFuture = _caricaDatiProfilo(currentUser.uid);
     }
+  }
+
+  void mostraStatisticheDialog(
+      BuildContext context, {
+        required double mediaValutazione, // es. 4.2
+        required int swipeDownCount,
+        required int swipeUpCount,
+      }) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: const Color(0xFF121212),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+            side: const BorderSide(color: Colors.white12, width: 1),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Titolo
+                const Text(
+                  'Statistiche',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Valutazione complessiva
+                const Text(
+                  'Valutazione complessiva:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // 5 Stelle dinamiche
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < mediaValutazione.round()
+                          ? Icons.star
+                          : Icons.star_border,
+                      color: index < mediaValutazione.round()
+                          ? Colors.yellow.shade700
+                          : Colors.white38,
+                      size: 32,
+                    );
+                  }),
+                ),
+                const SizedBox(height: 32),
+
+                // Sezione Swipe Down e Swipe Up
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Swipe down
+                    Column(
+                      children: [
+                        const Text(
+                          'Swipe down',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '$swipeDownCount',
+                          style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Separatore verticale
+                    Container(
+                      height: 60,
+                      width: 1,
+                      color: Colors.white12,
+                    ),
+
+                    // Swipe up
+                    Column(
+                      children: [
+                        const Text(
+                          'Swipe up:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.greenAccent,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '$swipeUpCount',
+                          style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.greenAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Tasto Chiudi
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                  ),
+                  child: const Text('Chiudi', style: TextStyle(fontSize: 16)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Funzione di supporto per caricare Utente e Recensioni in parallelo
+  Future<Map<String, dynamic>> _caricaDatiProfilo(String uid) async {
+    final utente = await controllore.getUtente(uid);
+
+    List<Recensione?> recensioni = [];
+    if (utente != null) {
+      recensioni = await controllore.getRecensioni(utente.id);
+    }
+
+    return {
+      'utente': utente,
+      'recensioni': recensioni,
+    };
   }
 
   /// Mostra la galleria full-screen con le lineette indicatrici in alto
@@ -41,7 +193,7 @@ class _ProfileTabState extends State<ProfileTab> {
           backgroundColor: Colors.black,
           body: Stack(
             children: [
-              // 1. PageView per scorrere le foto con supporto al Zoom
+              // 1. PageView per scorrere le foto con supporto allo Zoom
               PageView.builder(
                 controller: pageController,
                 itemCount: immagini.length,
@@ -52,7 +204,6 @@ class _ProfileTabState extends State<ProfileTab> {
                   return GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onTapUp: (details) {
-                      // Tap a destra per andare avanti, tap a sinistra per andare indietro
                       final screenWidth = MediaQuery.of(context).size.width;
                       if (details.globalPosition.dx > screenWidth / 2) {
                         if (index < immagini.length - 1) {
@@ -89,7 +240,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 },
               ),
 
-              // 2. Lineette indicatrici in alto (stile Tinder/Instagram)
+              // 2. Lineette indicatrici in alto
               if (immagini.length > 1)
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 12,
@@ -120,7 +271,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   ),
                 ),
 
-              // 3. Tasto di chiusura (X) in alto a sinistra
+              // 3. Tasto di chiusura (X)
               Positioned(
                 top: MediaQuery.of(context).padding.top + (immagini.length > 1 ? 24 : 12),
                 left: 16,
@@ -144,13 +295,12 @@ class _ProfileTabState extends State<ProfileTab> {
     const backgroundColor = Colors.transparent;
     const cardColor = Color(0xFF121212);
     const textColor = Colors.white;
-    const subTextColor = Colors.white70;
 
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: FutureBuilder<Utente?>(
-          future: _userFuture,
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _profileDataFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -167,7 +317,7 @@ class _ProfileTabState extends State<ProfileTab> {
               );
             }
 
-            if (!snapshot.hasData || snapshot.data == null) {
+            if (!snapshot.hasData || snapshot.data!['utente'] == null) {
               return const Center(
                 child: Text(
                   'Utente non trovato',
@@ -176,7 +326,13 @@ class _ProfileTabState extends State<ProfileTab> {
               );
             }
 
-            final user = snapshot.data!;
+            // Estrazione dati dal FutureBuilder
+            final Utente user = snapshot.data!['utente'];
+            final List<Recensione?> recensioni = snapshot.data!['recensioni'] ?? [];
+
+            // Rimuoviamo eventuali elementi nulli se la lista accetta Recensione?
+            final List<Recensione> recensioniValide = recensioni.whereType<Recensione>().toList();
+
             final List<String> images = user.imgs;
             final bool hasImage = images.isNotEmpty && images[0].isNotEmpty;
 
@@ -187,9 +343,9 @@ class _ProfileTabState extends State<ProfileTab> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween, // Spinge il testo a sinistra e il pulsante a destra
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    children:[
+                    children: [
                       const Text(
                         'Il tuo profilo:',
                         style: TextStyle(
@@ -199,20 +355,20 @@ class _ProfileTabState extends State<ProfileTab> {
                         ),
                       ),
                       IconButton(
-                          icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 28),
-                          tooltip: 'Logout',
-                          onPressed: () async {
-                            await AuthService().logout();
-                            if(mounted){
-                              Navigator.pushReplacementNamed(context, '/login_screen');
-                            }
+                        icon: const Icon(Icons.logout_rounded, color: Colors.red, size: 28),
+                        tooltip: 'Logout',
+                        onPressed: () async {
+                          await AuthService().logout();
+                          if (mounted) {
+                            Navigator.pushReplacementNamed(context, '/login_screen');
                           }
+                        },
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // Avatar cliccabile con bordo rosso
+                  // Avatar
                   GestureDetector(
                     onTap: () {
                       if (hasImage) {
@@ -260,7 +416,20 @@ class _ProfileTabState extends State<ProfileTab> {
                         icon: Icons.bar_chart_rounded,
                         label: 'Statistiche',
                         textColor: textColor,
-                        onTap: () {},
+                        onTap: () {
+                          double mediaStelle = 0;
+                          if (recensioniValide.isNotEmpty) {
+                            double somma = recensioniValide.fold(0, (sum, item) => sum + item.valutazione);
+                            mediaStelle = somma / recensioniValide.length;
+                          }
+
+                          mostraStatisticheDialog(
+                            context,
+                            mediaValutazione: mediaStelle,
+                            swipeDownCount: 5,
+                            swipeUpCount: 5,
+                          );
+                        },
                       ),
                       _buildActionButton(
                         icon: Icons.edit_note_rounded,
@@ -285,6 +454,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   ),
                   const SizedBox(height: 12),
 
+                  // Container lista dinamica delle recensioni
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16.0),
@@ -299,34 +469,29 @@ class _ProfileTabState extends State<ProfileTab> {
                         ),
                       ],
                     ),
-                    child: Column(
-                      children: [
-                        _buildReviewItem(
-                          avatarUrl: '',
-                          name: 'Utente1',
-                          rating: 0,
-                          comment:
-                          'buon combattente, abbiamo avuto una bella sessione di sparring',
-                          nameColor: textColor,
-                          commentColor: subTextColor,
-                          starEmptyColor: textColor,
-                        ),
-                        const Divider(
-                          height: 24,
-                          thickness: 1,
-                          color: Colors.white24,
-                        ),
-                        _buildReviewItem(
-                          avatarUrl:
-                          'https://via.placeholder.com/50/FFFFFF/000000?text=C',
-                          name: 'Chuck',
-                          rating: 1,
-                          comment: 'debole...',
-                          nameColor: textColor,
-                          commentColor: subTextColor,
-                          starEmptyColor: textColor,
-                        ),
-                      ],
+                    child: recensioniValide.isEmpty
+                        ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        'Nessuna recensione presente',
+                        style: TextStyle(color: Colors.white54),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                        : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: recensioniValide.length,
+                      separatorBuilder: (context, index) => const Divider(
+                        height: 24,
+                        thickness: 1,
+                        color: Colors.white24,
+                      ),
+                      itemBuilder: (context, index) {
+                        return _buildReviewItem(
+                          rec: recensioniValide[index],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -380,13 +545,7 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Widget _buildReviewItem({
-    required String avatarUrl,
-    required String name,
-    required int rating,
-    required String comment,
-    required Color nameColor,
-    required Color commentColor,
-    required Color starEmptyColor,
+    required Recensione rec,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,8 +554,8 @@ class _ProfileTabState extends State<ProfileTab> {
           radius: 20,
           backgroundColor: Colors.white10,
           backgroundImage:
-          avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-          child: avatarUrl.isEmpty
+          rec.foto.isNotEmpty ? NetworkImage(rec.foto) : null,
+          child: rec.foto.isEmpty
               ? const Icon(Icons.person_outline, color: Colors.white70)
               : null,
         ),
@@ -408,22 +567,22 @@ class _ProfileTabState extends State<ProfileTab> {
               Row(
                 children: [
                   Text(
-                    name,
-                    style: TextStyle(
+                    rec.nome,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: nameColor,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Row(
                     children: List.generate(5, (index) {
                       return Icon(
-                        index < rating ? Icons.star : Icons.star_border,
+                        index < rec.valutazione ? Icons.star : Icons.star_border,
                         size: 18,
-                        color: index < rating
+                        color: index < rec.valutazione
                             ? Colors.yellow.shade700
-                            : starEmptyColor,
+                            : Colors.white,
                       );
                     }),
                   ),
@@ -431,10 +590,10 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
               const SizedBox(height: 4),
               Text(
-                comment,
-                style: TextStyle(
+                rec.testo,
+                style: const TextStyle(
                   fontSize: 13,
-                  color: commentColor,
+                  color: Colors.white70,
                 ),
               ),
             ],

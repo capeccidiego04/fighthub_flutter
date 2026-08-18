@@ -130,7 +130,12 @@ class _FightTabState extends State<FightTab> {
                         const Icon(Icons.location_on, color: Colors.grey, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          profile.lat.toString(),
+                          DatabaseService().calcolaDistanza(
+                            profile.lat,
+                            profile.lon,
+                            _utenteCorrente?.lat,
+                            _utenteCorrente?.lon,
+                          ),
                           style: const TextStyle(color: Colors.grey, fontSize: 13),
                         ),
                       ],
