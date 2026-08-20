@@ -56,19 +56,6 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            // 1. IMMAGINE DEI LOTTATORI IN BASSO
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Image.asset(
-                'assets/bottom_fighters.png',
-                fit: BoxFit.cover,
-                height: MediaQuery.of(context).size.height * 0.35,
-                alignment: Alignment.topCenter,
-              ),
-            ),
-
             // 2. CONTENUTO CENTRALE (Logo + Menu o Card Login)
             Center(
               child: SingleChildScrollView(
