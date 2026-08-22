@@ -25,6 +25,8 @@ class DatabaseService {
     int? pesoKg,
     String? descrizione,
     List<File>? fotoProfilo,
+    double? lat,
+    double? lon,
   }) async {
     UserCredential userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
 
@@ -77,6 +79,8 @@ class DatabaseService {
       'descrizione': descrizione ?? '',
       'urlFoto': photoUrls,
       'artiPraticate': artiPraticate,
+      'lat': lat,
+      'lon': lon,
     });
   }
 
@@ -148,8 +152,8 @@ class DatabaseService {
     for(var doc in query.docs){
       final data = doc.data() as Map<String, dynamic>;
       Utente? u = await getUtente(data['recensoreUid']);
-      var nome;
-      var foto;
+      String? nome;
+      String? foto;
       if(u != null){
         nome = "${u.nome} ${u.cognome}";
         foto = u.imgs[0];
@@ -228,7 +232,6 @@ class DatabaseService {
     return deg * (pi / 180.0);
   }
 
-  /// Aggiorna peso, descrizione, arti praticate e foto del profilo
   Future<void> salvaModifiche({
     required String uid,
     required int peso,

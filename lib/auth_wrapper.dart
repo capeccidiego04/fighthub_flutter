@@ -16,7 +16,7 @@ class AuthWrapper extends StatelessWidget {
       stream: authService.authStateChanges,
       builder: (context, snapshot) {
 
-        // 1. In fase di caricamento (es. avvio dell'app) mostra una rotella
+        // Mostra una rotella in fase di avvio
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
@@ -25,12 +25,12 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // 2. Se l'utente è autenticato -> Vai alla Home
+        // L'utente è autenticato
         if (snapshot.hasData) {
           return const HomeScreen();
         }
 
-        // 3. Se l'utente NON è autenticato -> Vai al Login
+        // L'utente non è autenticato
         else {
           return const LoginScreen();
         }

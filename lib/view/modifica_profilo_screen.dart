@@ -53,9 +53,9 @@ class _ModificaProfiloScreenState extends State<ModificaProfiloScreen> {
   }
 
   Future<void> _selezionaImmagine() async {
-    if (_immagini.length >= 6) {
+    if (_immagini.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Puoi caricare al massimo 6 foto.')),
+        const SnackBar(content: Text('Puoi caricare al massimo 5 foto.')),
       );
       return;
     }
@@ -145,7 +145,7 @@ class _ModificaProfiloScreenState extends State<ModificaProfiloScreen> {
             children: [
               // Grid Foto Profilo
               const Text(
-                'Le tue Foto (max 6)',
+                'Le tue Foto (max 5)',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
               ),
               const SizedBox(height: 12),

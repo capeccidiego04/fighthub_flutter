@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../controller/controllore_db.dart';
 import 'home_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -27,7 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _altezzaController = TextEditingController();
   final TextEditingController _pesoController = TextEditingController();
 
-
+  Position? _posizioneUtente;
 
   DateTime? _selectedDate;
   final Set<String> _selectedArts = {};
@@ -74,24 +75,91 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _selezionaFoto() async {
+    // 1. Se ci sono già 5 foto, avvisa l'utente e blocca la selezione
+    if (_immaginiSelezionate.length >= 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hai già aggiunto il limite massimo di 5 foto!')),
+      );
+      return;
+    }
+
     try {
       final List<XFile> pickedFiles = await _picker.pickMultiImage(
         imageQuality: 70,
       );
 
       if (pickedFiles.isNotEmpty) {
+        // 2. Calcola quante foto si possono ancora aggiungere prima di arrivare a 5
+        int postiDisponibili = 5 - _immaginiSelezionate.length;
+
         setState(() {
+          // Prende solo le prime 'postiDisponibili' foto scorte
           _immaginiSelezionate.addAll(
-            pickedFiles.map((xFile) => File(xFile.path)).toList(),
+            pickedFiles
+                .take(postiDisponibili)
+                .map((xFile) => File(xFile.path))
+                .toList(),
           );
         });
+
+        // Avvisa se sono state scartate delle immagini in eccesso
+        if (pickedFiles.length > postiDisponibili && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sono state aggiunte solo le immagini fino al limite di 5.')),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Errore selezione foto: $e');
     }
   }
 
-  Future<void> registra() async {
+  Future<void> _ottieniPosizione() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // 1. Verifica se i servizi di localizzazione sono attivi
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('I servizi di localizzazione sono disattivati.')),
+      );
+      return;
+    }
+
+    // 2. Gestione dei permessi
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permesso di localizzazione negato.')),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permessi negati permanentemente. Abilitali dalle impostazioni.')),
+      );
+      return;
+    }
+
+    // 3. Recupera le coordinate correnti
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    setState(() {
+      _posizioneUtente = position;
+    });
+  }
+
+  Future<void> _registra() async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -113,7 +181,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           altezzaCm: int.tryParse(_altezzaController.text),
           pesoKg: int.tryParse(_pesoController.text),
           descrizione: _descrizioneController.text,
-          fotoProfilo: _immaginiSelezionate);
+          fotoProfilo: _immaginiSelezionate,
+          lat: _posizioneUtente?.latitude,
+          lon: _posizioneUtente?.longitude
+      );
 
       if(!mounted) return;
       Navigator.of(context).pop();
@@ -143,17 +214,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            // Sfondo con i lottatori (visibile sotto i dialog grigi)
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.35,
-                child: Image.asset(
-                  'assets/bottom_fighters.png', // Assicurati sia presente nei tuoi asset
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-
             // PageView con le 5 Schermate di Registrazione
             SafeArea(
               child: PageView(
@@ -448,6 +508,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   );
                   return;
                 }
+                _ottieniPosizione();
                 _nextPage();
               }),
               const SizedBox(height: 16),
@@ -498,7 +559,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Colors.white,
                     () {
                   // Finalizza la registrazione e passa alla HomeScreen
-                  registra();
+                  _registra();
                 },
               ),
             ),

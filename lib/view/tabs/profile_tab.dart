@@ -29,7 +29,7 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
-  void mostraStatisticheDialog(
+  void _mostraStatisticheDialog(
       BuildContext context, {
         required double mediaValutazione, // es. 4.2
         required int swipeDownCount,
@@ -164,7 +164,7 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  /// Funzione di supporto per caricare Utente e Recensioni in parallelo
+  /// Metodo di supporto per caricare informazioni in parallelo
   Future<Map<String, dynamic>> _caricaDatiProfilo(String uid) async {
     final utente = await controllore.getUtente(uid);
 
@@ -441,7 +441,7 @@ class _ProfileTabState extends State<ProfileTab> {
                             mediaStelle = somma / recensioniValide.length;
                           }
 
-                          mostraStatisticheDialog(
+                          _mostraStatisticheDialog(
                             context,
                             mediaValutazione: mediaStelle,
                             swipeDownCount: swipeDownCount,

@@ -21,86 +21,53 @@ class ChatTab extends StatelessWidget {
           ),
         ),
 
-        // Sezione "Nuovi Match" Orizzontale
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.0),
-          child: Text(
-            'Nuovi Fight Match',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 80,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            itemCount: 5,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: CircleAvatar(
-                  radius: 32,
-                  backgroundColor: Colors.redAccent,
-                  child: CircleAvatar(
-                    radius: 30,
-                    backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=${index + 10}'),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-
-        const Divider(height: 32, indent: 20, endIndent: 20),
-
-        // Sezione Conversazioni
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.0),
-          child: Text(
-            'Messaggi',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-        ),
-        const SizedBox(height: 8),
-
+        // Stato Vuoto Generico (Placeholder)
         Expanded(
-          child: ListView.separated(
-            itemCount: 4,
-            separatorBuilder: (context, index) => const Divider(indent: 80, endIndent: 20),
-            itemBuilder: (context, index) {
-              final nomi = ['Mike Tyson', 'Habib', 'Conor', 'Ronda'];
-              final messaggi = [
-                'Ci vediamo in palestra alle 18?',
-                'Ottimo sparring oggi!',
-                'Accetti la sfida?',
-                'Quando facciamo un altro round?'
-              ];
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Icona stilizzata
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 64,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-              return ListTile(
-                leading: CircleAvatar(
-                  radius: 26,
-                  backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=${index + 1}'),
-                ),
-                title: Text(
-                  nomi[index],
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                ),
-                subtitle: Text(
-                  messaggi[index],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                trailing: const Text(
-                  '12:30',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                onTap: () {
-                  // Apri la conversazione specifica
-                },
-              );
-            },
+                  // Titolo dello stato vuoto
+                  const Text(
+                    'Nessuna conversazione',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Descrizione spiegativa
+                  Text(
+                    'Quando trovi un match con un altro lottatore, le tue chat appariranno qui.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],

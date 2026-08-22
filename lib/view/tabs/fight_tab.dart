@@ -67,7 +67,7 @@ class _FightTabState extends State<FightTab> {
 
     if (currentIndex == null) {
       setState(() {
-        // Opzionale: pulisci la lista per attivare la schermata "Nessun altro profilo"
+        // pulisci la lista per attivare la schermata "Nessun altro profilo"
         _profiles.clear();
       });
     }
@@ -390,13 +390,12 @@ class _FighterCardWidgetState extends State<_FighterCardWidget> {
       return const SizedBox.shrink();
     }
 
-    final io = DatabaseService().getUtente(user.uid);
-
     // Protezione per evitare errori se la lista di immagini cambia dinamica o supera i limiti
     if (hasImages && _currentImageIndex >= images.length) {
       _currentImageIndex = 0;
     }
 
+    //clip smussata rettangolare
     return ClipRRect(
       borderRadius: BorderRadius.circular(20.0),
       child: Stack(
