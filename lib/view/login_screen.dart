@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: () {
                             // Logica per la schermata di registrazione
-                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF212121),
