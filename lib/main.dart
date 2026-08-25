@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'auth_wrapper.dart';
-import 'controller/firebase_options.dart';
+import 'firebase_options.dart';
 import 'view/login_screen.dart'; // Importa la nuova schermata
 import 'package:supabase_flutter/supabase_flutter.dart';
 
