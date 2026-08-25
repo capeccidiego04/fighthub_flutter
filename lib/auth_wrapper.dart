@@ -25,14 +25,10 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // L'utente è autenticato
         if (snapshot.hasData) {
-          return const HomeScreen();
-        }
-
-        // L'utente non è autenticato
-        else {
-          return const LoginScreen();
+          return const HomeScreen(); // L'utente è autenticato
+        } else {
+          return const LoginScreen(); //utente non autenticato
         }
       },
     );

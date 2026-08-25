@@ -12,10 +12,10 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print(">>> Firebase inizializzato correttamente! <<<");
+    print("Firebase inizializzato correttamente!");
   } catch (e, stacktrace) {
-    print(">>> ERRORE INIZIALIZZAZIONE FIREBASE: $e <<<");
-    print(">>> STACKTRACE: $stacktrace <<<");
+    print("ERRORE INIZIALIZZAZIONE FIREBASE: $e");
+    print("STACKTRACE: $stacktrace");
   }
 
   try {
